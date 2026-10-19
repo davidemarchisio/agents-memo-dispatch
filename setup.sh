@@ -7,7 +7,8 @@
 # Safe to run again. It:
 #   1. creates the board folder and files/, and copies board/README.md (the rules) into it.
 #      Conversation files are never touched.
-#   2. adds a short block to ~/.claude/CLAUDE.md (once), so Claude Code knows the board.
+#   2. adds a short block to ~/.claude/CLAUDE.md, or updates it when the board folder changed,
+#      so Claude Code knows the board.
 #   3. adds the board folder to permissions.additionalDirectories in
 #      ~/.claude/settings.json, so Claude Code can read it without asking.
 set -euo pipefail
@@ -49,28 +50,47 @@ claude_dir="$HOME/.claude"
 claude_md="$claude_dir/CLAUDE.md"
 mkdir -p "$claude_dir"
 touch "$claude_md"
-if grep -q '<!-- message-board start -->' "$claude_md"; then
-  echo "$claude_md: message-board block already there, left unchanged"
-else
-  # shellcheck disable=SC2016  # backticks are Markdown, not command substitution
-  {
-    printf '\n<!-- message-board start -->\n'
-    printf '## Message board\n\n'
-    printf 'Davide, Cowork and you leave each other messages on a shared board: %s\n' "$board"
-    printf 'When Davide says "check the board" or names a board conversation, read README.md in that folder first and follow it.\n'
-    printf 'Your name on the board is `code`.\n'
-    printf '<!-- message-board end -->\n'
-  } >> "$claude_md"
+# shellcheck disable=SC2016  # backticks are Markdown, not command substitution
+block=$(
+  printf '<!-- message-board start -->\n'
+  printf '## Message board\n\n'
+  printf 'Davide, Cowork and you leave each other messages on a shared board: %s\n' "$board"
+  printf 'When Davide says "check the board" or names a board conversation, read README.md in that folder first and follow it.\n'
+  printf 'Your name on the board is `code`.\n'
+  printf '<!-- message-board end -->'
+)
+start_line='<!-- message-board start -->'
+end_line='<!-- message-board end -->'
+if ! grep -qF '<!-- message-board' "$claude_md"; then
+  printf '\n%s\n' "$block" >> "$claude_md"
   echo "$claude_md: added the message-board block"
+else
+  s=$(grep -nxF "$start_line" "$claude_md" | cut -d: -f1 || true)
+  e=$(grep -nxF "$end_line" "$claude_md" | cut -d: -f1 || true)
+  # exactly two marker lines in the file: the start line, then the end line
+  [ "$(grep -cF '<!-- message-board' "$claude_md")" -eq 2 ] && [ -n "$s" ] && [ -n "$e" ] && [ "$s" -lt "$e" ] ||
+    fail "$claude_md must have one line $start_line followed by one line $end_line. Fix or remove the block by hand, then run again."
+  target=$(realpath "$claude_md")   # write through a symlink, don't replace it
+  tmp="$target.tmp"
+  BLOCK=$block awk -v s="$s" -v e="$e" 'NR == s { print ENVIRON["BLOCK"] } NR < s || NR > e' "$target" > "$tmp"
+  if cmp -s "$tmp" "$target"; then
+    rm "$tmp"
+    echo "$claude_md: message-board block already there, left unchanged"
+  else
+    chmod --reference="$target" "$tmp"
+    mv "$tmp" "$target"
+    echo "$claude_md: updated the message-board block to $board"
+    echo "An older board folder may still be in permissions.additionalDirectories in $claude_dir/settings.json. Remove it there if you no longer use it."
+  fi
 fi
 
 # 3. Allowed directories
 settings="$claude_dir/settings.json"
 if command -v python3 >/dev/null 2>&1; then
   python3 - "$settings" "$board" <<'__PY__'
-import json, os, sys
+import json, os, shutil, sys
 
-path, board = sys.argv[1], sys.argv[2]
+path, board = os.path.realpath(sys.argv[1]), sys.argv[2]  # write through a symlink, don't replace it
 try:
     with open(path) as f:
         text = f.read()
@@ -82,13 +102,21 @@ except (ValueError, OSError) as e:
     print(f"Add {board} to permissions.additionalDirectories by hand.", file=sys.stderr)
     sys.exit(0)
 
-dirs = data.setdefault("permissions", {}).setdefault("additionalDirectories", [])
+perms = data.get("permissions", {}) if isinstance(data, dict) else None
+dirs = perms.get("additionalDirectories", []) if isinstance(perms, dict) else None
+if not isinstance(dirs, list):
+    print("~/.claude/settings.json: expected an object with permissions.additionalDirectories as a list, found another shape.", file=sys.stderr)
+    print(f"Add {board} to permissions.additionalDirectories by hand.", file=sys.stderr)
+    sys.exit(0)
+data.setdefault("permissions", perms).setdefault("additionalDirectories", dirs)
 if board in dirs:
     print("~/.claude/settings.json: board folder already allowed")
 else:
     dirs.append(board)
     tmp = path + ".tmp"
     with open(tmp, "w") as f:
+        if os.path.exists(path):
+            shutil.copymode(path, tmp)  # keep the user's file mode
         json.dump(data, f, indent=2)
         f.write("\n")
     os.replace(tmp, path)

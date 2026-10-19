@@ -6,6 +6,7 @@ set -u
 setup="$(cd "$(dirname "$0")/.." && pwd)/setup.sh"
 failures=0
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+not() { ! "$@"; }
 check() {  # check <description> <command...>
   local what=$1; shift
   if "$@"; then echo "PASS $what"; else echo "FAIL $what"; failures=$((failures + 1)); fi
@@ -37,6 +38,81 @@ else
     check "board path '$path' gives the error" grep -q 'board folder is empty or /' <<<"$err"
     check "board path '$path' writes nothing in HOME" [ ! -e "$home/.claude" ]
   done
+fi
+
+# Same board again: CLAUDE.md is byte-identical.
+home=$(mktemp -d -p "$tmp")
+HOME=$home bash "$setup" "$board" >/dev/null
+cp "$home/.claude/CLAUDE.md" "$tmp/claude.before"
+HOME=$home bash "$setup" "$board" >/dev/null
+check "same board twice leaves CLAUDE.md identical" cmp -s "$tmp/claude.before" "$home/.claude/CLAUDE.md"
+
+# A new board path replaces the block in place and keeps the user's own text around it.
+home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude"
+printf 'my notes before\n' > "$home/.claude/CLAUDE.md"
+HOME=$home bash "$setup" "$tmp/old-board" >/dev/null
+printf 'my notes after\n' >> "$home/.claude/CLAUDE.md"
+HOME=$home bash "$setup" "$tmp/new-board" >/dev/null
+md="$home/.claude/CLAUDE.md"
+check "new path: one block" [ "$(grep -c '<!-- message-board start -->' "$md")" = 1 ]
+check "new path: block names the new board" grep -qF "$tmp/new-board" "$md"
+check "new path: old board gone" not grep -qF "$tmp/old-board" "$md"
+check "new path: text before kept" [ "$(head -1 "$md")" = "my notes before" ]
+check "new path: text after kept" [ "$(tail -1 "$md")" = "my notes after" ]
+
+# Start marker without end marker: refuse, leave CLAUDE.md alone.
+home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude"
+printf 'x\n<!-- message-board start -->\ny\n' > "$home/.claude/CLAUDE.md"
+cp "$home/.claude/CLAUDE.md" "$tmp/half.before"
+err=$(HOME=$home bash "$setup" "$tmp/b" 2>&1 >/dev/null)
+check "half block: refused" [ $? -ne 0 ]
+check "half block: names the end marker" grep -qF '<!-- message-board end -->' <<<"$err"
+check "half block: CLAUDE.md unchanged" cmp -s "$tmp/half.before" "$home/.claude/CLAUDE.md"
+
+# Markers out of order, on one line or twice: refuse, leave CLAUDE.md alone.
+n=0
+for bad in 'x\n<!-- message-board end -->\n<!-- message-board start -->\ny\n' \
+           'x\n<!-- message-board start --> <!-- message-board end -->\ny\n' \
+           'x\n<!-- message-board start -->\n<!-- message-board end -->\n<!-- message-board start -->\n<!-- message-board end -->\n'; do
+  home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude"
+  printf "$bad" > "$home/.claude/CLAUDE.md"
+  cp "$home/.claude/CLAUDE.md" "$tmp/bad.before"
+  HOME=$home bash "$setup" "$tmp/b" >/dev/null 2>&1
+  status=$?
+  n=$((n + 1))
+  check "bad markers case $n: refused" [ "$status" -ne 0 ]
+  check "bad markers case $n: CLAUDE.md unchanged" cmp -s "$tmp/bad.before" "$home/.claude/CLAUDE.md"
+done
+
+# Updating the block keeps CLAUDE.md's mode and a symlinked CLAUDE.md stays a symlink.
+home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude" "$home/dotfiles"
+ln -s "$home/dotfiles/CLAUDE.md" "$home/.claude/CLAUDE.md"
+HOME=$home bash "$setup" "$tmp/old-board" >/dev/null
+chmod 600 "$home/dotfiles/CLAUDE.md"
+HOME=$home bash "$setup" "$tmp/new-board" >/dev/null
+check "symlinked CLAUDE.md: still a symlink" [ -L "$home/.claude/CLAUDE.md" ]
+check "symlinked CLAUDE.md: target updated" grep -qF "$tmp/new-board" "$home/dotfiles/CLAUDE.md"
+check "CLAUDE.md keeps mode 600" [ "$(stat -c %a "$home/dotfiles/CLAUDE.md")" = 600 ]
+
+if command -v python3 >/dev/null 2>&1; then
+  # settings.json with an unexpected shape: left alone, setup still succeeds.
+  for json in '[]' '{"permissions": []}' '{"permissions": {"additionalDirectories": "x"}}'; do
+    home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude"
+    printf '%s\n' "$json" > "$home/.claude/settings.json"
+    out=$(HOME=$home bash "$setup" "$tmp/b" 2>&1)
+    check "settings $json: exits 0" [ $? -eq 0 ]
+    check "settings $json: unchanged" [ "$(cat "$home/.claude/settings.json")" = "$json" ]
+    check "settings $json: says add by hand" grep -q 'by hand' <<<"$out"
+  done
+
+  # settings.json keeps its file mode, and a symlinked settings.json stays a symlink.
+  home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude" "$home/dotfiles"
+  printf '{}\n' > "$home/dotfiles/settings.json"; chmod 600 "$home/dotfiles/settings.json"
+  ln -s "$home/dotfiles/settings.json" "$home/.claude/settings.json"
+  HOME=$home bash "$setup" "$tmp/b" >/dev/null
+  check "settings.json keeps mode 600" [ "$(stat -c %a "$home/dotfiles/settings.json")" = 600 ]
+  check "symlinked settings.json: still a symlink" [ -L "$home/.claude/settings.json" ]
+  check "symlinked settings.json: target updated" grep -qF "$tmp/b" "$home/dotfiles/settings.json"
 fi
 
 [ "$failures" -eq 0 ] || { echo "$failures failed"; exit 1; }
