@@ -5,13 +5,14 @@ set -u
 
 setup="$(cd "$(dirname "$0")/.." && pwd)/setup.sh"
 failures=0
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 check() {  # check <description> <command...>
   local what=$1; shift
   if "$@"; then echo "PASS $what"; else echo "FAIL $what"; failures=$((failures + 1)); fi
 }
 
 # A normal run, then a second run that must change nothing.
-home=$(mktemp -d); board="$(mktemp -d)/board"
+home=$(mktemp -d -p "$tmp"); board="$tmp/board"
 HOME=$home bash "$setup" "$board" >/dev/null
 check "first run exits 0" [ $? -eq 0 ]
 check "files/ created" [ -d "$board/files" ]
@@ -29,8 +30,8 @@ fi
 if [ "$(id -u)" -eq 0 ]; then
   echo "SKIP empty and / path checks: running as root, a broken setup.sh would write to /"
 else
-  for path in "" "/" "//"; do
-    home=$(mktemp -d)
+  for path in "" "/" "//" "/." "/tmp/.."; do
+    home=$(mktemp -d -p "$tmp")
     err=$(HOME=$home bash "$setup" "$path" 2>&1 >/dev/null)
     check "board path '$path' refused" [ $? -ne 0 ]
     check "board path '$path' gives the error" grep -q 'board folder is empty or /' <<<"$err"

@@ -37,8 +37,8 @@ else
   esac
   board="$(wslpath -u "$winhome")/agents-notice-board"
 fi
-board=${board%/}
-[ -n "${board//\//}" ] || fail "board folder is empty or /. Give a real folder, e.g. bash $0 /mnt/c/Users/<you>/agents-notice-board"
+board=$(realpath -m -- "${board:-/}")   # absolute, no trailing slash, no . or ..
+[ "$board" != / ] || fail "board folder is empty or /. Give a real folder, e.g. bash $0 /mnt/c/Users/<you>/agents-notice-board"
 
 mkdir -p "$board/files"
 cp "$rules" "$board/README.md"   # the rules; replaced on every run
