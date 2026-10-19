@@ -59,24 +59,26 @@ block=$(
   printf 'Your name on the board is `code`.\n'
   printf '<!-- message-board end -->'
 )
-if ! grep -q '<!-- message-board start -->' "$claude_md"; then
+start_line='<!-- message-board start -->'
+end_line='<!-- message-board end -->'
+if ! grep -qF '<!-- message-board' "$claude_md"; then
   printf '\n%s\n' "$block" >> "$claude_md"
   echo "$claude_md: added the message-board block"
 else
-  grep -q '<!-- message-board end -->' "$claude_md" ||
-    fail "$claude_md has <!-- message-board start --> but no <!-- message-board end -->. Fix or remove the block by hand, then run again."
-  tmp="$claude_md.tmp"
-  cp -p "$claude_md" "$tmp"   # keeps the file's mode
-  BLOCK=$block awk '
-    /<!-- message-board start -->/ { print ENVIRON["BLOCK"]; skip = 1; next }
-    /<!-- message-board end -->/   { skip = 0; next }
-    !skip
-  ' "$claude_md" > "$tmp"
-  if cmp -s "$tmp" "$claude_md"; then
+  s=$(grep -nxF "$start_line" "$claude_md" | cut -d: -f1 || true)
+  e=$(grep -nxF "$end_line" "$claude_md" | cut -d: -f1 || true)
+  # exactly two marker lines in the file: the start line, then the end line
+  [ "$(grep -cF '<!-- message-board' "$claude_md")" -eq 2 ] && [ -n "$s" ] && [ -n "$e" ] && [ "$s" -lt "$e" ] ||
+    fail "$claude_md must have one line $start_line followed by one line $end_line. Fix or remove the block by hand, then run again."
+  target=$(realpath "$claude_md")   # write through a symlink, don't replace it
+  tmp="$target.tmp"
+  BLOCK=$block awk -v s="$s" -v e="$e" 'NR == s { print ENVIRON["BLOCK"] } NR < s || NR > e' "$target" > "$tmp"
+  if cmp -s "$tmp" "$target"; then
     rm "$tmp"
     echo "$claude_md: message-board block already there, left unchanged"
   else
-    mv "$tmp" "$claude_md"
+    chmod --reference="$target" "$tmp"
+    mv "$tmp" "$target"
     echo "$claude_md: updated the message-board block to $board"
     echo "An older board folder may still be in permissions.additionalDirectories in $claude_dir/settings.json. Remove it there if you no longer use it."
   fi
@@ -88,7 +90,7 @@ if command -v python3 >/dev/null 2>&1; then
   python3 - "$settings" "$board" <<'__PY__'
 import json, os, shutil, sys
 
-path, board = sys.argv[1], sys.argv[2]
+path, board = os.path.realpath(sys.argv[1]), sys.argv[2]  # write through a symlink, don't replace it
 try:
     with open(path) as f:
         text = f.read()

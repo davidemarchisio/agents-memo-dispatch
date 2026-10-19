@@ -69,6 +69,29 @@ check "half block: refused" [ $? -ne 0 ]
 check "half block: names the end marker" grep -qF '<!-- message-board end -->' <<<"$err"
 check "half block: CLAUDE.md unchanged" cmp -s "$tmp/half.before" "$home/.claude/CLAUDE.md"
 
+# Markers out of order, on one line or twice: refuse, leave CLAUDE.md alone.
+n=0
+for bad in 'x\n<!-- message-board end -->\n<!-- message-board start -->\ny\n' \
+           'x\n<!-- message-board start --> <!-- message-board end -->\ny\n' \
+           'x\n<!-- message-board start -->\n<!-- message-board end -->\n<!-- message-board start -->\n<!-- message-board end -->\n'; do
+  home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude"
+  printf "$bad" > "$home/.claude/CLAUDE.md"
+  cp "$home/.claude/CLAUDE.md" "$tmp/bad.before"
+  HOME=$home bash "$setup" "$tmp/b" >/dev/null 2>&1
+  n=$((n + 1))
+  check "bad markers case $n: CLAUDE.md unchanged" cmp -s "$tmp/bad.before" "$home/.claude/CLAUDE.md"
+done
+
+# Updating the block keeps CLAUDE.md's mode and a symlinked CLAUDE.md stays a symlink.
+home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude" "$home/dotfiles"
+ln -s "$home/dotfiles/CLAUDE.md" "$home/.claude/CLAUDE.md"
+HOME=$home bash "$setup" "$tmp/old-board" >/dev/null
+chmod 600 "$home/dotfiles/CLAUDE.md"
+HOME=$home bash "$setup" "$tmp/new-board" >/dev/null
+check "symlinked CLAUDE.md: still a symlink" [ -L "$home/.claude/CLAUDE.md" ]
+check "symlinked CLAUDE.md: target updated" grep -qF "$tmp/new-board" "$home/dotfiles/CLAUDE.md"
+check "CLAUDE.md keeps mode 600" [ "$(stat -c %a "$home/dotfiles/CLAUDE.md")" = 600 ]
+
 if command -v python3 >/dev/null 2>&1; then
   # settings.json with an unexpected shape: left alone, setup still succeeds.
   for json in '[]' '{"permissions": []}' '{"permissions": {"additionalDirectories": "x"}}'; do
