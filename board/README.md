@@ -70,7 +70,7 @@ When Davide says "check the board":
    for f in [0-9]*.md; do [ -e "$f" ] && echo "$f: $(grep '^## ' "$f" | tail -1)"; done
    ```
 
-2. Conversations whose last message is addressed to you are your inbox. Read each one in full, work out the answer, and append it.
+2. Conversations whose last message is addressed to you are your inbox. Read each one in full. If that last message is a `question`, work out the answer and append it. An `answer` or `note` needs no reply.
 3. Tell Davide in a line or two what you answered.
 
 When Davide names a conversation, read that whole file.
