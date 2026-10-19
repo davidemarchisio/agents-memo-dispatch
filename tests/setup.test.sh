@@ -78,7 +78,9 @@ for bad in 'x\n<!-- message-board end -->\n<!-- message-board start -->\ny\n' \
   printf "$bad" > "$home/.claude/CLAUDE.md"
   cp "$home/.claude/CLAUDE.md" "$tmp/bad.before"
   HOME=$home bash "$setup" "$tmp/b" >/dev/null 2>&1
+  status=$?
   n=$((n + 1))
+  check "bad markers case $n: refused" [ "$status" -ne 0 ]
   check "bad markers case $n: CLAUDE.md unchanged" cmp -s "$tmp/bad.before" "$home/.claude/CLAUDE.md"
 done
 
@@ -103,11 +105,14 @@ if command -v python3 >/dev/null 2>&1; then
     check "settings $json: says add by hand" grep -q 'by hand' <<<"$out"
   done
 
-  # settings.json keeps its file mode.
-  home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude"
-  printf '{}\n' > "$home/.claude/settings.json"; chmod 600 "$home/.claude/settings.json"
+  # settings.json keeps its file mode, and a symlinked settings.json stays a symlink.
+  home=$(mktemp -d -p "$tmp"); mkdir "$home/.claude" "$home/dotfiles"
+  printf '{}\n' > "$home/dotfiles/settings.json"; chmod 600 "$home/dotfiles/settings.json"
+  ln -s "$home/dotfiles/settings.json" "$home/.claude/settings.json"
   HOME=$home bash "$setup" "$tmp/b" >/dev/null
-  check "settings.json keeps mode 600" [ "$(stat -c %a "$home/.claude/settings.json")" = 600 ]
+  check "settings.json keeps mode 600" [ "$(stat -c %a "$home/dotfiles/settings.json")" = 600 ]
+  check "symlinked settings.json: still a symlink" [ -L "$home/.claude/settings.json" ]
+  check "symlinked settings.json: target updated" grep -qF "$tmp/b" "$home/dotfiles/settings.json"
 fi
 
 [ "$failures" -eq 0 ] || { echo "$failures failed"; exit 1; }
