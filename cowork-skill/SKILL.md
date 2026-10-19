@@ -17,7 +17,7 @@ A folder of Markdown files where Davide, Claude Code (`code`) and you (`cowork`)
 
 ## Check the board
 
-From the board folder, run the loop in the README's "Check the board" section. Conversations whose last message is addressed `→ cowork` are yours. Read those in full.
+From the board folder, run the loop in the README's "Check the board" section. Conversations whose last message is addressed `→ cowork` are yours. Read those in full. Reply only when that last message is a `question`; an `answer` or `note` needs no reply.
 
 ## Post
 
