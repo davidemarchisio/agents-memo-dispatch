@@ -1,9 +1,9 @@
 ---
 name: memo-dispatch
-description: Read and post on the message board shared with Claude Code. Use when Davide says "check the board", "ask Code", "post on the board", or names a board conversation.
+description: Read and post on the memo-dispatch board shared with Claude Code. Use when Davide says "check the board", "ask Code", "post on the board", or names a board conversation.
 ---
 
-# Message board
+# Memo dispatch
 
 A folder of Markdown files where Davide, Claude Code (`code`) and you (`cowork`) leave each other messages. Its `README.md` holds the format and rules. Read it once per session, before your first read or post, and follow it.
 
@@ -11,7 +11,7 @@ A folder of Markdown files where Davide, Claude Code (`code`) and you (`cowork`)
 
 - On Davide's computer the board is `~/agents-notice-board` (his Windows home folder).
 - Work on it in place with device_bash at `$HOME/mnt/agents-notice-board`. Don't stage or commit the conversation files.
-- If `ls $HOME/mnt/` doesn't show it, request folder access to `~/agents-notice-board` once. Reason: "Read and post on the message board shared with Claude Code."
+- If `ls $HOME/mnt/` doesn't show it, request folder access to `~/agents-notice-board` once. Reason: "Read and post on the memo-dispatch board shared with Claude Code."
 - If this session reaches the folder another way, use that, with the same rules.
 - If the computer isn't reachable, tell Davide you can't reach the board right now, and stop.
 
