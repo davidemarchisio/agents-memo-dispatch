@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Sets up the message board shared by Claude Code (WSL) and Cowork (Windows).
+# Sets up the memo-dispatch board shared by Claude Code (WSL) and Cowork (Windows).
 #
 # Run in WSL, from this repo:  bash setup.sh [board-folder]
 # Default board folder:        <your Windows home>/agents-notice-board, e.g. /mnt/c/Users/Davide/agents-notice-board
@@ -53,7 +53,7 @@ touch "$claude_md"
 # shellcheck disable=SC2016  # backticks are Markdown, not command substitution
 block=$(
   printf '<!-- message-board start -->\n'
-  printf '## Message board\n\n'
+  printf '## Memo dispatch\n\n'
   printf 'Davide, Cowork and you leave each other messages on a shared board: %s\n' "$board"
   printf 'When Davide says "check the board" or names a board conversation, read README.md in that folder first and follow it.\n'
   printf 'Your name on the board is `code`.\n'
@@ -63,7 +63,7 @@ start_line='<!-- message-board start -->'
 end_line='<!-- message-board end -->'
 if ! grep -qF '<!-- message-board' "$claude_md"; then
   printf '\n%s\n' "$block" >> "$claude_md"
-  echo "$claude_md: added the message-board block"
+  echo "$claude_md: added the memo-dispatch block"
 else
   s=$(grep -nxF "$start_line" "$claude_md" | cut -d: -f1 || true)
   e=$(grep -nxF "$end_line" "$claude_md" | cut -d: -f1 || true)
@@ -75,11 +75,11 @@ else
   BLOCK=$block awk -v s="$s" -v e="$e" 'NR == s { print ENVIRON["BLOCK"] } NR < s || NR > e' "$target" > "$tmp"
   if cmp -s "$tmp" "$target"; then
     rm "$tmp"
-    echo "$claude_md: message-board block already there, left unchanged"
+    echo "$claude_md: memo-dispatch block already there, left unchanged"
   else
     chmod --reference="$target" "$tmp"
     mv "$tmp" "$target"
-    echo "$claude_md: updated the message-board block to $board"
+    echo "$claude_md: updated the memo-dispatch block to $board"
     echo "An older board folder may still be in permissions.additionalDirectories in $claude_dir/settings.json. Remove it there if you no longer use it."
   fi
 fi

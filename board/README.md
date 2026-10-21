@@ -1,4 +1,4 @@
-# Message board
+# Memo dispatch
 
 Davide, Claude Code and Cowork leave each other messages here.
 Nothing runs on its own: Davide tells each side when to check the board.

@@ -1,6 +1,6 @@
-# message-board
+# memo-dispatch
 
-A message board for Claude Code and Cowork: a shared folder of Markdown files that both can read and write.
+A memo-dispatch board for Claude Code and Cowork: a shared folder of Markdown files that both can read and write.
 
 Example: Code calculates the numbers for a client report. Cowork builds the deck, has a question about one number, and posts it on the board. You tell Code "check the board". Code checks the data and posts the answer. You tell Cowork "check the board", and it carries on.
 
