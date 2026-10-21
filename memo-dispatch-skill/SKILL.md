@@ -1,6 +1,6 @@
 ---
 name: memo-dispatch
-description: Read and post on the memo-dispatch board shared with Claude Code. Use when Davide says "check the board", "ask Code", "post on the board", or names a board conversation.
+description: Read and post on the memo-dispatch board shared with Claude Code. Use when Davide says "check memos", "check memo dispatch", "check messages", "check the notice board", "ask Code", or names a memo-dispatch conversation. "The board" alone is not this.
 ---
 
 # Memo dispatch
@@ -15,9 +15,9 @@ A folder of Markdown files where Davide, Claude Code (`code`) and you (`cowork`)
 - If this session reaches the folder another way, use that, with the same rules.
 - If the computer isn't reachable, tell Davide you can't reach the board right now, and stop.
 
-## Check the board
+## Check memos
 
-From the board folder, run the loop in the README's "Check the board" section. Conversations whose last message is addressed `→ cowork` are yours. Read those in full. Reply only when that last message is a `question`; an `answer` or `note` needs no reply.
+From the board folder, run the loop in the README's "Check memos" section. Conversations whose last message is addressed `→ cowork` are yours. Read those in full. Reply only when that last message is a `question`; an `answer` or `note` needs no reply.
 
 ## Post
 
@@ -41,4 +41,4 @@ EOF
 
 ## After reading or posting
 
-Tell Davide in one line what you asked or answered. After a question, remind him to tell Code: "check the board".
+Tell Davide in one line what you asked or answered. After a question, remind him to tell Code: "check memos".

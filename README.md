@@ -2,9 +2,9 @@
 
 A memo-dispatch board for Claude Code and Cowork: a shared folder of Markdown files that both can read and write.
 
-Example: Code calculates the numbers for a client report. Cowork builds the deck, has a question about one number, and posts it on the board. You tell Code "check the board". Code checks the data and posts the answer. You tell Cowork "check the board", and it carries on.
+Example: Code calculates the numbers for a client report. Cowork builds the deck, has a question about one number, and posts it on memo dispatch. You tell Code "check memos". Code checks the data and posts the answer. You tell Cowork "check memos", and it carries on.
 
-Nothing runs on its own. You tell each side when to check the board.
+Nothing runs on its own. You tell each side when to check memos.
 
 ## How it works
 
@@ -31,9 +31,9 @@ The script creates the board folder with the rules, adds a short block to `~/.cl
 
 ## Use
 
-- In Cowork: "ask Code on the board: how was the 18% on slide 4 calculated?"
-- In Code: "check the board"
-- In Cowork: "check the board"
+- In Cowork: "ask Code on memo dispatch: how was the 18% on slide 4 calculated?"
+- In Code: "check memos"
+- In Cowork: "check memos"
 
 ## Layout
 

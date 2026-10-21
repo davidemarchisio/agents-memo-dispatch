@@ -55,8 +55,8 @@ block=$(
   printf '<!-- message-board start -->\n'
   printf '## Memo dispatch\n\n'
   printf 'Davide, Cowork and you leave each other messages on a shared board: %s\n' "$board"
-  printf 'When Davide says "check the board" or names a board conversation, read README.md in that folder first and follow it.\n'
-  printf 'Your name on the board is `code`.\n'
+  printf 'When Davide says "check memos", "check memo dispatch", "check messages" or "check the notice board", or names a conversation there, read README.md in that folder first and follow it. "The board" alone means the task board, not this.\n'
+  printf 'Your name on memo dispatch is `code`.\n'
   printf '<!-- message-board end -->'
 )
 start_line='<!-- message-board start -->'
