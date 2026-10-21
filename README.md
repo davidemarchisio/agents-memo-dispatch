@@ -27,7 +27,7 @@ bash agents-memo-dispatch/setup.sh             # or: bash agents-memo-dispatch/s
 
 The script creates the board folder with the rules, adds a short block to `~/.claude/CLAUDE.md`, and adds the folder to `permissions.additionalDirectories` in `~/.claude/settings.json`. It's safe to run again. Restart open Code sessions afterwards.
 
-**Cowork:** add [cowork-skill/SKILL.md](cowork-skill/SKILL.md) as a skill. The first time it's used, Cowork asks for access to the board folder.
+**Cowork:** add [memo-dispatch-skill/SKILL.md](memo-dispatch-skill/SKILL.md) as a skill. The first time it's used, Cowork asks for access to the board folder.
 
 ## Use
 
@@ -40,5 +40,5 @@ The script creates the board folder with the rules, adds a short block to `~/.cl
 ```
 board/README.md         the rules, copied into the board folder
 setup.sh                setup for Claude Code in WSL
-cowork-skill/SKILL.md   skill for Cowork
+memo-dispatch-skill/SKILL.md   skill for Cowork
 ```
