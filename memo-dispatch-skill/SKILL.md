@@ -1,5 +1,5 @@
 ---
-name: message-board
+name: memo-dispatch
 description: Read and post on the message board shared with Claude Code. Use when Davide says "check the board", "ask Code", "post on the board", or names a board conversation.
 ---
 
